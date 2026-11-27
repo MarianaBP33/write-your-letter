@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="robots" content="noindex, nofollow">
 <title>For You ♡</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -51,9 +52,9 @@
     display: flex; flex-direction: column; align-items: center; justify-content: center;
     gap: 1.25rem;
     background: radial-gradient(circle at 30% 20%, var(--bg1), var(--bg2));
-    cursor: pointer;
     transition: opacity .8s ease, visibility .8s ease;
   }
+  .intro.ready { cursor: pointer; }
   .intro.hidden { opacity: 0; visibility: hidden; }
   .envelope {
     width: 200px; height: 130px;
@@ -61,8 +62,8 @@
     position: relative;
     border-radius: 6px;
     box-shadow: 0 10px 30px rgba(150, 60, 80, .25);
-    animation: bob 2.4s ease-in-out infinite;
   }
+  .intro.ready .envelope { animation: bob 2.4s ease-in-out infinite; }
   .envelope::before {
     content: "";
     position: absolute; top: 0; left: 0;
@@ -80,7 +81,7 @@
     box-shadow: 0 2px 6px rgba(0,0,0,.2);
   }
   @keyframes bob { 50% { transform: translateY(-8px); } }
-  .tap { font-style: italic; font-size: 1.2rem; color: var(--soft); letter-spacing: .03em; }
+  .tap { font-style: italic; font-size: 1.2rem; color: var(--soft); letter-spacing: .03em; min-height: 1.5em; }
 
   /* letter */
   .letter {
@@ -111,7 +112,7 @@
     line-height: 1.75;
     margin-bottom: 1.1rem;
   }
-  /* placeholder shown until you add your letter */
+  /* blank lined space, shown while the letter has no paragraphs */
   .placeholder {
     min-height: 260px;
     background: repeating-linear-gradient(transparent, transparent 34px, rgba(176,122,122,.25) 35px);
@@ -136,7 +137,8 @@
     .body p { font-size: 1.15rem; }
   }
   @media (prefers-reduced-motion: reduce) {
-    .hearts, .envelope { animation: none; display: none; }
+    .hearts { display: none; }
+    .intro.ready .envelope { animation: none; }
   }
 </style>
 </head>
@@ -146,38 +148,67 @@
 
 <div class="intro" id="intro">
   <div class="envelope"><div class="seal">♥</div></div>
-  <p class="tap">tap to open</p>
+  <p class="tap" id="tap"></p>
 </div>
 
-<main class="letter" id="letter">
-  <h1 class="greeting">My love,</h1>
-
-  <div class="body">
-    <!-- ✍️ WRITE YOUR LETTER HERE.
-         Delete the placeholder div below and add paragraphs like:
-         <p>First paragraph...</p>
-         <p>Second paragraph...</p>
-    -->
-    <div class="placeholder"></div>
-  </div>
-
+<main class="letter" id="letter" hidden>
+  <h1 class="greeting" id="greeting"></h1>
+  <div class="body" id="body"></div>
   <p class="signoff">
-    Forever yours,
-    <span class="name">Your Name</span>
+    <span id="signoff"></span>
+    <span class="name" id="name"></span>
   </p>
-
   <div class="heart-end">♡</div>
 </main>
 
 <script>
-  const intro = document.getElementById('intro');
-  const letter = document.getElementById('letter');
-  intro.addEventListener('click', () => {
-    intro.classList.add('hidden');
-    letter.classList.add('show');
-  });
+  // The letter text lives in letters/<key>.js. The key comes from the link: ?k=<key>
+  // Without the right key there is nothing to load, so the envelope stays sealed.
+  const $ = (id) => document.getElementById(id);
+  const intro = $('intro'), letter = $('letter'), tap = $('tap');
 
-  const hearts = document.getElementById('hearts');
+  function sealed() {
+    tap.textContent = 'this letter is sealed';
+  }
+
+  function render(L) {
+    $('greeting').textContent = L.greeting || '';
+    $('signoff').textContent = L.signoff || '';
+    $('name').textContent = L.name || '';
+    const body = $('body');
+    const paras = (L.paragraphs || []).filter(Boolean);
+    if (paras.length === 0) {
+      const ph = document.createElement('div');
+      ph.className = 'placeholder';
+      body.appendChild(ph);
+    } else {
+      for (const text of paras) {
+        const p = document.createElement('p');
+        p.textContent = text;
+        body.appendChild(p);
+      }
+    }
+    letter.hidden = false;
+    tap.textContent = 'tap to open';
+    intro.classList.add('ready');
+    intro.addEventListener('click', () => {
+      intro.classList.add('hidden');
+      letter.classList.add('show');
+    }, { once: true });
+  }
+
+  const key = new URLSearchParams(location.search).get('k') || '';
+  if (!/^[A-Za-z0-9_-]{1,64}$/.test(key)) {
+    sealed();
+  } else {
+    const s = document.createElement('script');
+    s.src = 'letters/' + key + '.js';
+    s.onload = () => (window.LETTER ? render(window.LETTER) : sealed());
+    s.onerror = sealed;
+    document.head.appendChild(s);
+  }
+
+  const hearts = $('hearts');
   for (let i = 0; i < 18; i++) {
     const h = document.createElement('span');
     h.textContent = '♥';
