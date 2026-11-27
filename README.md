@@ -2,19 +2,19 @@
 
 A small one-page site that shows a love letter. It opens on a sealed envelope that says "tap to open", and tapping it reveals the letter. It's designed for phones, so someone can tap an **NFC tag** and read your letter right away.
 
-The letter only opens with a **secret link** (`?k=your-secret-key`). Anyone who visits the site without the key sees a sealed envelope and nothing else.
+*Optional:* you can make the letter open only with a secret link (`?k=your-secret-key`). See [Optional: secret link](#optional-secret-link).
 
 ---
 
 ## How it works
 
 ```
-index.html              ← the page (you don't need to edit this)
-letters/example.js      ← your letter text goes here (rename it to your secret key)
-robots.txt              ← asks search engines not to list the site
+index.html     ← the page (you don't need to edit this)
+letter.js      ← your letter text goes here
+robots.txt     ← asks search engines not to list the site
 ```
 
-When someone opens `https://your-site.netlify.app/?k=x7Gq92LmPz4`, the page loads `letters/x7Gq92LmPz4.js`. Without the key there's nothing to load, so the envelope stays sealed. Your letter text is never inside `index.html`.
+The page reads your letter from `letter.js`. To keep the letter behind a secret link, see [Optional: secret link](#optional-secret-link) below.
 
 ---
 
@@ -33,24 +33,9 @@ gh repo create my-letter --private --template <owner>/write-your-letter --clone
 
 ---
 
-## 2. Pick a secret key
+## 2. Write your letter
 
-Generate a random key (letters, numbers, `-` and `_` only, up to 64 characters):
-```bash
-openssl rand -base64 12 | tr -dc 'A-Za-z0-9' | head -c 12; echo
-```
-Or just type something long and random, like `x7Gq92LmPz4`.
-
-Then rename the letter file to match:
-```bash
-git mv letters/example.js letters/x7Gq92LmPz4.js
-```
-
----
-
-## 3. Write your letter
-
-Open `letters/<your-key>.js` in any text editor:
+Open `letter.js` in any text editor:
 
 ```js
 window.LETTER = {
@@ -68,9 +53,12 @@ window.LETTER = {
 - To use a quote mark inside the text, write `\"`. For example: `"You said \"hi\" and I melted."`
 - If `paragraphs` is empty, the letter shows blank lined paper.
 
-**Preview locally:** open `index.html?k=<your-key>` in your browser. You can't double-click a link with `?k=` in it, so paste the full file path into the address bar, e.g. `file:///Users/you/my-letter/index.html?k=x7Gq92LmPz4`.
+**Preview locally:** double-click `index.html`.
 
-Then save your changes and push them:
+---
+
+## 3. Save and push
+
 ```bash
 git add -A
 git commit -m "Write the letter"
@@ -92,22 +80,19 @@ GitHub Pages doesn't work with private repos on a free account, so use **Netlify
 
 Each `git push` **redeploys automatically**, and the URL stays the same.
 
-Your **secret link** is then:
-```
-https://your-site.netlify.app/?k=x7Gq92LmPz4
-```
+> ⚠️ If your site shows **401 Unauthorized** to other people, turn off visitor protection: **Site configuration → Access & security → Visitor access → No protection**.
 
 > Vercel (https://vercel.com) also works: import the repo and deploy with the default settings.
 
 ---
 
-## 5. Write the secret link to an NFC tag
+## 5. Write the link to an NFC tag
 
 Use the **NFC Tools** app (iOS or Android):
 
 1. Open **NFC Tools** and go to the **Write** tab.
 2. Tap **Add a record → URL / URI**.
-3. Enter your **full secret link**, including `https://` and `?k=...`.
+3. Enter your site URL, including `https://` (and `?k=...` if you use a secret link).
 4. Tap **OK**, then **Write / X bytes**.
 5. Hold the tag against the back of your phone until you see **"Write complete"**.
 
@@ -119,14 +104,42 @@ Close the app, unlock your phone, and bring the tag close to it:
 ### Tips
 - **Write the tag once.** The link never changes, so you can edit the letter later just by pushing.
 - **Antenna spots:** near the top of the back on iPhone, and the middle of the back on most Android phones.
-- **Capacity:** small tags (NTAG213) hold about 130 characters, so keep the site name and key short.
+- **Capacity:** small tags (NTAG213) hold about 130 characters, so keep the URL short.
 - **Metal surfaces** block NFC. Use an "anti-metal" tag if you're sticking it on metal.
 - **Locking** (*NFC Tools → Other → Lock tag*) stops anyone from rewriting the tag, but it's **permanent**.
 
 ---
 
+## Optional: secret link
+
+By default, anyone with your site URL can read the letter. If you want it to open **only** with a secret link (`?k=your-key`):
+
+1. Pick a random key (letters, numbers, `-` and `_` only, up to 64 characters):
+   ```bash
+   openssl rand -base64 12 | tr -dc 'A-Za-z0-9' | head -c 12; echo
+   ```
+2. Move your letter into a `letters/` folder, named after the key:
+   ```bash
+   mkdir -p letters
+   git mv letter.js letters/x7Gq92LmPz4.js
+   ```
+   ⚠️ Don't leave a copy of `letter.js` behind, or the plain URL will still show the letter.
+3. Push. Your letter now opens only at:
+   ```
+   https://your-site.netlify.app/?k=x7Gq92LmPz4
+   ```
+   The plain URL, or a wrong key, shows a sealed envelope that won't open.
+4. Write the **full** link, including `?k=...`, to your NFC tag.
+
+**Preview locally:** paste the file path with the key into your browser's address bar, e.g. `file:///Users/you/my-letter/index.html?k=x7Gq92LmPz4`.
+
+To go back, run `git mv letters/x7Gq92LmPz4.js letter.js`.
+
+---
+
 ## How private is it?
 
-- ✅ Your letter text lives only in your **private** repo and in a file only the secret link points to.
+- ✅ Your letter text lives only in your **private** repo.
 - ✅ Search engines are asked not to list the site (`robots.txt` plus a `noindex` tag).
-- ⚠️ Anyone who **has the full link** can read the letter. That includes someone who scans the tag or sees the link. It's hard to guess, but it isn't a password.
+- ⚠️ Without a secret link, anyone with your site URL can read the letter.
+- ⚠️ With a secret link, anyone who **has the full link** can read it, including someone who scans the tag. It's hard to guess, but it isn't a password.

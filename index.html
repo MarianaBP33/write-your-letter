@@ -162,8 +162,9 @@
 </main>
 
 <script>
-  // The letter text lives in letters/<key>.js. The key comes from the link: ?k=<key>
-  // Without the right key there is nothing to load, so the envelope stays sealed.
+  // By default the letter text lives in letter.js.
+  // Optional secret key: move it to letters/<key>.js and open the site with ?k=<key>.
+  // If there's no letter to load, the envelope stays sealed.
   const $ = (id) => document.getElementById(id);
   const intro = $('intro'), letter = $('letter'), tap = $('tap');
 
@@ -197,12 +198,16 @@
     }, { once: true });
   }
 
-  const key = new URLSearchParams(location.search).get('k') || '';
-  if (!/^[A-Za-z0-9_-]{1,64}$/.test(key)) {
+  const key = new URLSearchParams(location.search).get('k');
+  let src = null;
+  if (key === null) src = 'letter.js';
+  else if (/^[A-Za-z0-9_-]{1,64}$/.test(key)) src = 'letters/' + key + '.js';
+
+  if (!src) {
     sealed();
   } else {
     const s = document.createElement('script');
-    s.src = 'letters/' + key + '.js';
+    s.src = src;
     s.onload = () => (window.LETTER ? render(window.LETTER) : sealed());
     s.onerror = sealed;
     document.head.appendChild(s);
